@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-mongo-deployment
+  namespace: mongo-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-mongo
+  template: 
+    metadata:
+      labels:
+        app: fastapi-mongo
+    spec:
+      containers:
+      - name: fastapi-mongo
+        image: myregistry.azurecr.io/myimage:1.0
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database_url
+        ports:
+        - name: fastapi-mongo
+          containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-mongo-service
+  namespace: mongo-database
+spec:
+  selector:
+    app: fastapi-mongo
+  type: LoadBalancer
+  ports:
+    - name: fastapi-mongo
+      port: 80
+      protocol: TCP
+      targetPort: 80
+      nodePort: 30001
